@@ -5,7 +5,9 @@ from tkinter import ttk, LEFT, filedialog
 import xml.dom.minidom
 import pyperclip
 
-from page_one import *
+from page_one import PageOne
+from page_three import PageThree
+from page_two import PageTwo
 
 LARGE_FONT = ('Verdana', 18)
 NORMAL_FONT = ('Verdana', 12)
@@ -43,46 +45,59 @@ class DbManagement(tk.Tk):
 
         self.frames = {}
 
-        def buttons():
-            button1 = tk.Button(self, text='Go home and create new project',
-                                command=lambda: self.show_frame(PageOne))
-            button1.pack(side=LEFT)
-            button2 = tk.Button(self, text='Open Database',
+        # ---- Buttons ----- #
+        btn_go_page_1 = tk.Button(self, text='First Page',
+                                  command=lambda: click_first_page())
+        btn_open_db = tk.Button(self, text='Open Database',
                                 command=lambda: open_db())
-            button2.pack(side=LEFT)
-            button3 = tk.Button(self, text='Exit',
-                                command=quit)
-            button3.pack(side=LEFT)
+        btn_go_page_2 = tk.Button(self, text='Second Page',
+                                  command=lambda: click_second_page())
+        btn_go_page_3 = tk.Button(self, text='Third Page',
+                            command=lambda: click_third_page())
 
-        buttons()
+        btn_quit = tk.Button(self, text='Exit',
+                             command=quit)
 
-        for F in (PageOne, PageTwo):
+        btn_go_page_1.pack(side=LEFT)
+        btn_go_page_2.pack(side=LEFT)
+        btn_go_page_3.pack(side=LEFT)
+        btn_open_db.pack(side=LEFT)
+        btn_quit.pack(side=LEFT)
+
+        my_frames = (PageOne, PageTwo, PageThree)
+
+        for F in my_frames:
             frame = F(container, self)
             self.frames[F] = frame
-            frame.grid(column=1, row=1, sticky="NSEW")
+            frame.grid(column=0, row=0, sticky="NSEW")
 
-        self.show_frame(PageOne)
+        #self.show_frame(PageOne)
+
+
+
+        def click_first_page():
+            self.show_frame(PageOne)
+            btn_go_page_1.config(state='disabled')
+            btn_go_page_2.config(state='normal')
+            btn_go_page_3.config(state='disabled')
+
+        def click_second_page():
+            self.show_frame(PageTwo)
+            btn_go_page_1.config(state='normal')
+            btn_go_page_2.config(state='disabled')
+            btn_go_page_3.config(state='normal')
+
+        def click_third_page():
+            self.show_frame(PageThree)
+            btn_go_page_1.config(state='normal')
+            btn_go_page_2.config(state='normal')
+            btn_go_page_3.config(state='disabled')
+
+        click_first_page()
 
     def show_frame(self, cont):
         frame = self.frames[cont]
         frame.tkraise()
-
-
-class PageTwo(tk.Frame):
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
-
-        def entries_labels():
-            label = tk.Label(self, text='Generate XML file to be used in Geomagic Control X', font=LARGE_FONT)
-            label.grid(row=0, column=0, pady=10, padx=10, sticky="NSEW", columnspan=3)
-
-        entries_labels()
-
-
-class Database(tk.Frame):
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-        self.db_path = 'my_database.db'
 
 
 app = DbManagement()

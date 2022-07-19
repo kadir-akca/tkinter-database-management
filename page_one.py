@@ -1,8 +1,12 @@
+import random
 import sqlite3
 import subprocess
 import tkinter as tk
 from tkinter import ttk, LEFT, filedialog, END
 import xml.dom.minidom
+import xlsxwriter
+import openpyxl
+
 
 LARGE_FONT = ('Verdana', 18)
 NORMAL_FONT = ('Verdana', 12)
@@ -11,9 +15,10 @@ SMALL_FONT = ('Verdana', 8)
 
 class PageOne(tk.Frame):
     def __init__(self, parent, controller):
-        self.val_dep = ['Stuttgart', 'HQ', 'HongKong']  # Comboboxes
-        self.val_exptype = ['Not defined 1', 'Not defined 2', 'Not defined 3']  #
-        self.val_artused = ['Ball 150 mm', 'Ball 300 mm', 'Ball 500 mm']  #
+
+        self.val_dep = ['Stuttgart', 'HQ', 'HongKong']
+        self.val_exptype = ['Not defined 1', 'Not defined 2', 'Not defined 3']
+        self.val_artused = ['Ball 150 mm', 'Ball 300 mm', 'Ball 500 mm']
         self.filename = ''
 
         tk.Frame.__init__(self, parent)
@@ -82,11 +87,6 @@ class PageOne(tk.Frame):
                             height=1)
         button2.grid(row=9, column=3, sticky="NSEW")
 
-        button3 = tk.Button(self, text='Go to the next step',
-                            command=lambda: print("Works"),
-                            height=1)
-        button3.grid(row=12, column=0, columnspan=3, sticky="NSEW")
-
         def artefactused_changed(event):
             if artefactused.get() == 'Ball 150 mm':
                 artefactcalib.config(state='normal')
@@ -108,8 +108,7 @@ class PageOne(tk.Frame):
             deviceSN.insert(0, get_deviceSN())
             operator.insert(0, get_operator())
             department.set(get_department())
-            experiencetype.set(get_experienceid())
-            artefactused.set(get_partname())
+            artefactused.set(get_artefactused())
 
         cbb_artefact_used.bind('<<ComboboxSelected>>', artefactused_changed)
 
@@ -155,7 +154,7 @@ class PageOne(tk.Frame):
             self.product_name = elements[2].childNodes[0].nodeValue
             return self.product_name
 
-        def get_partname():
+        def get_artefactused():
             elements = get_autotext()
             self.part_name = elements[3].childNodes[0].nodeValue
             return self.part_name
@@ -184,10 +183,32 @@ class PageOne(tk.Frame):
             open_fd()
             data = [get_deviceSN(), get_experienceid(), get_partnumber()]
             insert_to_entry()
-
+            exppp = generate_exp_id(data[2])
+            experienceid.insert(0, exppp)
+            experienceid.config(state='disabled')
             return data
-
 
     def read_XML(self):
 
         pass
+
+
+def generate_exp_id(data):
+    wb = openpyxl.load_workbook('exp_id.xlsx')
+    sh = wb.active
+    if data == 'BallArray300':
+        last_c = sh.cell(row=sh.max_row, column=1)
+        last_no = int(last_c[-4:])
+        c1 = sh.cell(row=sh.max_row+1, column=1)
+        c1.value = 'acc' + str(last_no + 1)
+    elif data == 'BallArray500':
+        last_c = sh.cell(row=sh.max_row, column=2)
+        last_no = int(last_c[-4:])
+        c1 = sh.cell(row=sh.max_row + 1, column=2)
+        c1.value = 'acc_' + str(last_no + 1)
+
+
+    eid = random.randint(999, 19999)
+    text = 'acc_'
+    exid = text + str(eid)
+    return exid
