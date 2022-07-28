@@ -3,16 +3,10 @@ import xml.dom.minidom
 from datetime import datetime
 from tkinter import LEFT, ttk, END
 
-import openpyxl
-import pyperclip
-
 import database
 import fonts
 import methods
 from database import open_db
-from methods import generate_id_random
-
-x = database.get_last_experienceid()
 
 
 class PageClass(tk.Frame):
@@ -68,12 +62,6 @@ class PageClassOne(PageClass):
         self.department_name = None
         self.experience_id = None
         self.product_name = None
-        self.val_dep = ['HQ', 'Stuttgart', 'HongKong', 'China']
-        self.val_exptype = ['BB150', 'BB300', 'BA300', 'BB500']
-        self.val_artsn = [['BB150xxx', 'BB150yyy', 'BB150zzz'],
-                          ['BB300xxx', 'BB300yyy', 'BB300zzz'],
-                          ['BA300xxx', 'BA300yyy', 'BA300zzz'],
-                          ['BB500xxx', 'BB500yyy', 'BB500zzz']]
         self.filename = ''
 
         label = tk.Label(self, text='New Test Page', font=fonts.LARGE_FONT)
@@ -91,20 +79,21 @@ class PageClassOne(PageClass):
         self.department = tk.StringVar()
         self.cbb_department = ttk.Combobox(self, textvariable=self.department)
         self.cbb_department.grid(row=3, column=1, columnspan=2, padx=5, pady=5, ipadx=5, ipady=2, sticky="NSEW")
-        self.cbb_department['values'] = self.val_dep
+        self.cbb_department['values'] = database.get_departments()
         self.cbb_department['state'] = 'readonly'
 
         self.experiencetype = tk.StringVar()
         self.cbb_experience_type = ttk.Combobox(self, textvariable=self.experiencetype)
         self.cbb_experience_type.bind('<<ComboboxSelected>>', self.list_artefactSN)
         self.cbb_experience_type.grid(row=4, column=1, columnspan=2, padx=5, pady=5, ipadx=5, ipady=2, sticky="NSEW")
-        self.cbb_experience_type['values'] = self.val_exptype
+        self.cbb_experience_type['values'] = database.get_experience_type()
         self.cbb_experience_type['state'] = 'readonly'
 
         self.artefactSN = tk.StringVar()
         self.artefactSN_cbb = ttk.Combobox(self, textvariable=self.artefactSN)
         self.artefactSN_cbb.grid(row=5, column=1, columnspan=2, padx=5, pady=5, ipadx=5, ipady=2, sticky="NSEW")
         self.artefactSN_cbb['state'] = 'readonly'
+        self.artefactSN_cbb.config(state='disabled')
 
         self.certificateSN = tk.Entry(self)
         self.certificateSN.insert(0, 'certificate sn will be shown here automatically')
@@ -115,7 +104,7 @@ class PageClassOne(PageClass):
         self.subject.grid(row=7, column=1, columnspan=2, padx=5, pady=20, ipadx=5, ipady=2, sticky="NSEW")
 
         self.experienceid = tk.Entry(self)
-        self.experienceid.grid(row=9, column=1, padx=5, pady=5, ipadx=5, ipady=2, sticky="NSEW")
+        self.experienceid.grid(row=9, column=1, rowspan=2, padx=5, pady=5, ipadx=5, ipady=2, sticky="NSEW")
 
         deviceSN_l = tk.Label(self, text="Device SN:")
         deviceSN_l.grid(row=1, column=0)
@@ -132,20 +121,23 @@ class PageClassOne(PageClass):
         subject_l = tk.Label(self, text="Subject:")
         subject_l.grid(row=7, column=0)
         experienceid_l = tk.Label(self, text="Experience ID:")
-        experienceid_l.grid(row=9, column=0)
+        experienceid_l.grid(row=9, column=0, rowspan=2)
 
-        self.button1 = tk.Button(self, text='Fill with XML', command=lambda: self.get_data_from_xml())
-        self.button1.grid(row=8, column=0, columnspan=3, sticky="NSEW")
+        self.b_fill_with_xml = tk.Button(self, text='Fill with XML', command=lambda: self.get_data_from_xml())
+        self.b_fill_with_xml.grid(row=8, column=0, columnspan=3, sticky="NSEW")
 
-        self.button2 = tk.Button(self, text='Generate Experience ID', command=lambda: self.generate_exp_id_random())
-        self.button2.grid(row=9, column=2, padx=5, pady=5, sticky="NSEW")
+        self.b_generate_experience_id = tk.Button(self, text='Generate Experience ID',
+                                                  command=lambda: self.generate_experience_id())
+        self.b_generate_experience_id.grid(row=9, column=2, padx=5, pady=5, sticky="NSEW")
 
-        self.button3 = tk.Button(self, text='Create Experience', command=lambda: self.experience_to_db())
-        self.button3.grid(row=10, column=0, columnspan=3, padx=5, pady=5, sticky="NSEW")
+        self.b_copy = tk.Button(self, text='Copy', command=lambda: methods.copy(self.experienceid.get()))
+        self.b_copy.grid(row=10, column=2, padx=5, pady=5, sticky="NSEW")
 
-        button3 = tk.Button(self, text='Add operator',
-                            command=lambda: self.add_user())
-        button3.grid(row=2, column=3, sticky="NSEW")
+        self.b_create_experience = tk.Button(self, text='Create Experience', command=lambda: self.experience_to_db())
+        self.b_create_experience.grid(row=11, column=0, columnspan=3, padx=5, pady=5, sticky="NSEW")
+
+        b_add_operator = tk.Button(self, text='Add operator', command=lambda: self.add_operator())
+        b_add_operator.grid(row=2, column=3, sticky="NSEW")
 
         '''line1 = tk.Label(self, text='_______________________________________________________')
         line1.grid(row=10, column=0, columnspan=3)
@@ -176,7 +168,7 @@ class PageClassOne(PageClass):
         eid = self.experienceid.get()
         database.insert_accuracy_test(dev, op, dep, etype, artsn, certsn, sub, eid)
 
-    def add_user(self):
+    def add_operator(self):
         adduser_window = tk.Toplevel(root)
         adduser_window.title('Add new operator')
         adduser_window.geometry('200x200')
@@ -212,57 +204,35 @@ class PageClassOne(PageClass):
 
     def list_artefactSN(self, *args):
         self.artefactSN_cbb.config(values=[])
-        if self.experiencetype.get() == 'BB150':
-            self.artefactSN_cbb.config(values=self.val_artsn[0])
-        elif self.experiencetype.get() == 'BB300':
-            self.artefactSN_cbb.config(values=self.val_artsn[1])
-        elif self.experiencetype.get() == 'BA300':
-            self.artefactSN_cbb.config(values=self.val_artsn[2])
-        elif self.experiencetype.get() == 'BB500':
-            self.artefactSN_cbb.config(values=self.val_artsn[3])
+        m = self.experiencetype.get()
+        n = database.get_artefact_sn(m)
+        self.artefactSN_cbb.config(state='normal')
+        self.artefactSN_cbb.config(values=n)
 
-    def copy_to_clipboard(self):
-        print(self.experienceid.get())
-        if self.experienceid.get() in ' ':
-            self.copy_l['text'] = 'Nothing to copy!'
-            self.update()
-            self.copy_l.after(2000, self.clean_label())
-        else:
-            pyperclip.copy(str(self.experienceid2.get()))
-            self.copy_l['text'] = 'Copied!'
-            self.update()
-            self.copy_l.after(2000, self.clean_label())
-
-    def clean_label(self):
-        self.copy_l['text'] = ''
-
-    def generate_exp_id_random(self):
+    def generate_experience_id(self):
         dev = str(self.deviceSN.get())
-        print(dev)
         if dev == '':
             print('error')
         elif dev[:8] == 'FreeScan':
             dev = dev[8:]
-            path = "data.xlsx"
-            book = openpyxl.load_workbook(path)
-            sheet = book.active
             d = datetime.now().strftime('%d-%m-%y %H:%M')
-            max_col = sheet.max_row
             months = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
             now = datetime.now()
             str_mth = now.strftime('%-m')
             month = months[int(str_mth) - 1]
             day = now.strftime('%-d')
-            e = dev + month + day + '-' + str(generate_id_random())
-            for i in range(1, max_col + 1):
-                if e == sheet.cell(row=i, column=1):
-                    e = dev + month + day + '-' + str(generate_id_random())
-            sheet.append((e, d))
-            book.save('data.xlsx')
-            print("storing done")
+            e = dev + month + day + '-'
+            last_experience_id = database.get_experience_id(self.deviceSN.get())
+            print(last_experience_id[-3:])
+            if last_experience_id[-3:] == 'xxx':
+                id1 = '100'
+                e = str(e) + id1
+            else:
+                id2 = int(last_experience_id[-3:]) + 1
+                e = str(e) + str(id2)
             self.experienceid.insert(0, e)
             self.experienceid.config(state='disabled')
-            self.button2.config(state='disabled')
+            self.b_generate_experience_id.config(state='disabled')
 
     def insert_to_entry(self, x, y, z, t, r):
         self.deviceSN.insert(0, x)
@@ -297,7 +267,7 @@ class PageClassOne(PageClass):
         self.certificateSN.delete(0, END)
         self.experienceid.delete(0, END)
         self.subject.delete(1.0, END)
-        self.button2.config(state='normal')
+        self.b_generate_experience_id.config(state='normal')
 
 
 class PageClassTwo(PageClass):
@@ -305,23 +275,14 @@ class PageClassTwo(PageClass):
     def __init__(self, *args, **kwargs):
         PageClass.__init__(self, *args, **kwargs)
 
-        experience_id_ll = tk.Label(self, text="ExperienceID:")
-        experience_id_ll.grid(row=1, column=0)
+        experience_id_l = tk.Label(self, text="ExperienceID:")
+        experience_id_l.grid(row=1, column=0)
 
-        results_l = tk.Label(self, text='Test Results\n _____________________________', font=fonts.LARGE_FONT)
-        results_l.grid(row=2, column=0, columnspan=3, sticky='NSEW')
+        experience_id_e = tk.Entry(self)
+        experience_id_e.grid(row=1, column=1)
 
-        self.p2_entry = tk.Label(self, textvariable=x)
-        self.p2_entry.grid(row=1, column=1, padx=5, pady=5, ipadx=5, ipady=2, sticky="NSEW")
-
-        copy = tk.Button(self, command=lambda: self.copy_to_clipboard(), text='Copy to Clipboard')
-        copy.grid(row=1, column=5, padx=5, pady=5, ipadx=5, ipady=2, sticky="NSEW")
-
-        #self.get_experienceid()
-
-    def get_experienceid(self):
-        self.p2_entry['text'] = x
-        self.after(1000, self.get_experienceid())
+        b_copy = tk.Button(self, command=lambda: experience_id_e.insert(0, methods.paste()), text='Paste Experience ID')
+        b_copy.grid(row=1, column=5, padx=5, pady=5, ipadx=5, ipady=2, sticky="NSEW")
 
 
 if __name__ == '__main__':

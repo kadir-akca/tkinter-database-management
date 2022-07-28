@@ -3,7 +3,13 @@ import random
 import sys
 from tkinter import Tk
 
+import pyperclip
 
-def generate_id_random():
-    x = random.randint(100, 999)
+
+def copy(x):
+    pyperclip.copy(x)
+
+
+def paste():
+    x = pyperclip.paste()
     return x
